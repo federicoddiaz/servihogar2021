@@ -3,6 +3,7 @@ from os import name
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from sqlalchemy.orm import relationship
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']='mysql+pymysql://root@localhost:3308/servihogar'
@@ -19,7 +20,8 @@ class User(db.Model):
     password = db.Column(db.String(25), nullable=False)
     birthDate = db.Column(db.DateTime(), nullable=False)
     address = db.Column(db.String(40), nullable=False)
-    locality = db.relationship('Locality', backref='user', lazy=False)
+    locality_id = db.Column(db.Integer, nullable=False)
+    locality = db.relationship('Locality', backref='user', lazy=False, primaryjoin="Locality.id == foreign(User.locality_id)")
 
     def __init__(self, name, email, username, password, birthdate, address, locality):
         self.name = name
@@ -34,7 +36,8 @@ class Locality(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     city = db.Column(db.String(40), nullable=False)
     postalCode = db.Column(db.Integer, nullable=False)
-    province = db.relationship('Province', backref='locality', lazy=False)
+    province_id = db.Column(db.Integer, nullable=False)
+    province = db.relationship('Province', backref='locality', lazy=False, primaryjoin="Province.id == foreign(Locality.province_id)")
 
     def __init__(self, city, postalCode, province):
         self.city = city
