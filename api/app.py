@@ -18,19 +18,19 @@ class User(db.Model):
     email = db.Column(db.String(40), unique=True, nullable=False)
     username = db.Column(db.String(25), unique=True, nullable=False)
     password = db.Column(db.String(25), nullable=False)
-    birthDate = db.Column(db.DateTime(), nullable=False)
+    birthdate = db.Column(db.DateTime(), nullable=False)
     address = db.Column(db.String(40), nullable=False)
     locality_id = db.Column(db.Integer, nullable=False)
     locality = db.relationship('Locality', backref='user', lazy=False, primaryjoin="Locality.id == foreign(User.locality_id)")
 
-    def __init__(self, name, email, username, password, birthdate, address, locality):
+    def __init__(self, name, email, username, password, birthdate, address, locality_id):
         self.name = name
         self.email = email
         self.username = username
         self.password = password
         self.birthdate = birthdate
         self.address = address
-        self.locality = locality
+        self.locality_id = locality_id
 
 class Locality(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
@@ -39,10 +39,10 @@ class Locality(db.Model):
     province_id = db.Column(db.Integer, nullable=False)
     province = db.relationship('Province', backref='locality', lazy=False, primaryjoin="Province.id == foreign(Locality.province_id)")
 
-    def __init__(self, city, postalCode, province):
+    def __init__(self, city, postalCode, province_id):
         self.city = city
         self.postalCode = postalCode
-        self.province = province
+        self.province_id = province_id 
 
 class Province(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
@@ -55,7 +55,7 @@ db.create_all()
 
 class UserSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'name', 'email', 'username', 'password', 'birthdate', 'address', 'locality')
+        fields = ('id', 'name', 'email', 'username', 'password', 'birthdate', 'address', 'locality_id')
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
@@ -63,7 +63,7 @@ users_schema = UserSchema(many=True)
 class LocalitySchema(ma.Schema):
 
     class Meta:
-        fields = ('id', 'city', 'postalCode', 'province')
+        fields = ('id', 'city', 'postalCode', 'province_id')
 
 locality_schema = LocalitySchema()
 localities_schema = LocalitySchema(many=True)
@@ -85,9 +85,9 @@ def create_user():
     password = request.json['password']
     birthdate = request.json['birthdate']
     address = request.json['address']
-    locality = request.json['locality']
+    locality_id = request.json['locality_id']
 
-    new_user = User(name, email, username, password, birthdate, address, locality)
+    new_user = User(name, email, username, password, birthdate, address, locality_id)
     db.session.add(new_user)
     db.session.commit()
 
@@ -142,9 +142,9 @@ def create_locality():
 
     city = request.json['city']
     postalCode = request.json['postalCode']
-    province = request.json['province']
+    province_id = request.json['province_id']
 
-    new_locality = Locality(city, postalCode, province)
+    new_locality = Locality(city, postalCode, province_id)
     db.session.add(new_locality)
     db.session.commit()
 
