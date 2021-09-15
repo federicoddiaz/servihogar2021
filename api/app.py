@@ -20,29 +20,29 @@ class User(db.Model):
     password = db.Column(db.String(25), nullable=False)
     birthdate = db.Column(db.DateTime(), nullable=False)
     address = db.Column(db.String(40), nullable=False)
-    locality_id = db.Column(db.Integer, nullable=False)
-    locality = db.relationship('Locality', backref='user', lazy=False, primaryjoin="Locality.id == foreign(User.locality_id)")
+    city_id = db.Column(db.Integer, nullable=False)
+    city = db.relationship('City', backref='user', lazy=False, primaryjoin="City.id == foreign(User.city_id)")
 
-    def __init__(self, name, email, username, password, birthdate, address, locality_id):
+    def __init__(self, name, email, username, password, birthdate, address, city_id):
         self.name = name
         self.email = email
         self.username = username
         self.password = password
         self.birthdate = birthdate
         self.address = address
-        self.locality_id = locality_id
+        self.city_id = city_id
 
-class Locality(db.Model):
+class City(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
-    city = db.Column(db.String(40), nullable=False)
-    postalCode = db.Column(db.Integer, nullable=False)
+    name = db.Column(db.String(40), nullable=False)
+    postalCode = db.Column(db.String(40), nullable=False)
     province_id = db.Column(db.Integer, nullable=False)
-    province = db.relationship('Province', backref='locality', lazy=False, primaryjoin="Province.id == foreign(Locality.province_id)")
+    province = db.relationship('Province', backref='city', lazy=False, primaryjoin="Province.id == foreign(City.province_id)")
 
-    def __init__(self, city, postalCode, province_id):
-        self.city = city
+    def __init__(self, name, postalCode, province_id):
+        self.name = name
         self.postalCode = postalCode
-        self.province_id = province_id 
+        self.province_id = province_id
 
 class Province(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
@@ -55,18 +55,18 @@ db.create_all()
 
 class UserSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'name', 'email', 'username', 'password', 'birthdate', 'address', 'locality_id')
+        fields = ('id', 'name', 'email', 'username', 'password', 'birthdate', 'address', 'city_id')
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 
-class LocalitySchema(ma.Schema):
+class CitySchema(ma.Schema):
 
     class Meta:
-        fields = ('id', 'city', 'postalCode', 'province_id')
+        fields = ('id', 'name', 'postalCode', 'province_id')
 
-locality_schema = LocalitySchema()
-localities_schema = LocalitySchema(many=True)
+city_schema = CitySchema()
+cities_schema = CitySchema(many=True)
 
 class ProvinceSchema(ma.Schema):
 
@@ -75,6 +75,8 @@ class ProvinceSchema(ma.Schema):
 
 province_schema = ProvinceSchema()
 provinces_schema = ProvinceSchema(many=True)
+
+#--------------USER--------------
 
 @app.route('/users', methods=['POST'])
 def create_user():
@@ -85,9 +87,9 @@ def create_user():
     password = request.json['password']
     birthdate = request.json['birthdate']
     address = request.json['address']
-    locality_id = request.json['locality_id']
+    city_id = request.json['city_id']
 
-    new_user = User(name, email, username, password, birthdate, address, locality_id)
+    new_user = User(name, email, username, password, birthdate, address, city_id)
     db.session.add(new_user)
     db.session.commit()
 
@@ -97,12 +99,12 @@ def create_user():
 def get_users():
     all_users = User.query.all()
     result = users_schema.dump(all_users)
-    return user_schema.jsonify(result)
+    return users_schema.jsonify(result)
 
 @app.route('/users/<id>')
 def get_user(id):
     user = User.query.get(id)
-    return jsonify(user)
+    return user_schema.jsonify(user)
 
 @app.route('/users/<id>', methods=['PUT'])
 def update_user(id):
@@ -114,7 +116,7 @@ def update_user(id):
     password = request.json['password']
     birthdate = request.json['birthdate']
     address = request.json['address']
-    locality = request.json['locality']
+    city_id = request.json['city_id']
 
     user.name = name
     user.email = email
@@ -122,7 +124,7 @@ def update_user(id):
     user.password = password
     user.birthdate = birthdate
     user.address = address
-    user.locality = locality
+    user.city_id = city_id
 
     db.session.commit()
 
@@ -137,18 +139,58 @@ def delete_user(id):
 
     return user_schema.jsonify(user)
 
-@app.route('/localities', methods=['POST'])
-def create_locality():
+#--------------CITY--------------
 
-    city = request.json['city']
+@app.route('/cities', methods=['POST'])
+def create_city():
+
+    name = request.json['name']
     postalCode = request.json['postalCode']
     province_id = request.json['province_id']
 
-    new_locality = Locality(city, postalCode, province_id)
-    db.session.add(new_locality)
+    new_city = City(name, postalCode, province_id)
+    db.session.add(new_city)
     db.session.commit()
 
-    return locality_schema.jsonify(new_locality)
+    return city_schema.jsonify(new_city)
+
+@app.route('/cities', methods=['GET'])
+def get_cities():
+    all_cities = City.query.all()
+    result = cities_schema.dump(all_cities)
+    return cities_schema.jsonify(result)
+
+@app.route('/cities/<id>')
+def get_city(id):
+    city = City.query.get(id)
+    return city_schema.jsonify(city)
+
+@app.route('/cities/<id>', methods=['PUT'])
+def update_city(id):
+    city = City.query.get(id)
+
+    name = request.json['name']
+    postalCode = request.json['postalCode']
+    province_id = request.json['province_id']
+
+    city.name = name
+    city.postalCode = postalCode
+    city.province_id = province_id
+
+    db.session.commit()
+
+    return city_schema.jsonify(city)
+
+@app.route('/cities/<id>', methods=['DELETE'])
+def delete_city(id):
+    city = City.query.get(id)
+
+    db.session.delete(city)
+    db.session.commit()
+
+    return city_schema.jsonify(city)
+
+#--------------PROVINCE--------------
 
 @app.route('/provinces', methods=['POST'])
 def create_province():
@@ -159,11 +201,43 @@ def create_province():
     db.session.add(new_province)
     db.session.commit()
 
-    return locality_schema.jsonify(new_province)
+    return province_schema.jsonify(new_province)
+
+@app.route('/provinces', methods=['GET'])
+def get_provinces():
+    all_provinces = Province.query.all()
+    result = provinces_schema.dump(all_provinces)
+    return provinces_schema.jsonify(result)
+
+@app.route('/provinces/<id>')
+def get_province(id):
+    province = Province.query.get(id)
+    return province_schema.jsonify(province)
+
+@app.route('/provinces/<id>', methods=['PUT'])
+def update_province(id):
+    province = Province.query.get(id)
+
+    name = request.json['name']
+
+    province.name = name
+
+    db.session.commit()
+
+    return province_schema.jsonify(province)
+
+@app.route('/provinces/<id>', methods=['DELETE'])
+def delete_province(id):
+    province = Province.query.get(id)
+
+    db.session.delete(province)
+    db.session.commit()
+
+    return province_schema.jsonify(province)
 
 @app.route('/')
 def index():
-    return jsonify({"message": "What are you expecting to find here?"})
+    return jsonify({"message": "Welcome to ServiHogar"})
 
 if __name__ == "__main__":
     app.run(debug=True)
